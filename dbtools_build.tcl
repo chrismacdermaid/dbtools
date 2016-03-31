@@ -93,18 +93,6 @@ proc ::DBTools::buildDendrimer {dname gen\
 
 }
 
-proc ::DBTools::getNodes {gen depth} {
-
-  variable tree 
-
-  ## Return the full paths to all 
-  ## nodes at a particular depth 
-  #return [lsort -unique -integer -index $depth $tree($gen)]
-
-
-
-}
-
 proc ::DBTools::mergeFragments {coords top} {
 
     set coords [join $coords]

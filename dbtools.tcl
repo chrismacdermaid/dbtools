@@ -35,14 +35,6 @@ namespace eval ::DBTools:: {
     ## Array containing the binary tree connectivities
     variable tree
     array unset tree *
-
-    ## Array containing active selections
-    variable selections
-    foreach {key value} [array get selections] {
-        catch {$value delete}
-        unset selections($key)
-    }
-    array unset selections *
 }
 
 ## A wrapper around cgCon
@@ -63,6 +55,8 @@ proc DBTools::dbtCon {flag str} {
 proc DBTools { args } {
     eval ::DBTools::DBTools $args
 }
+
+proc DBTools::DBTools args {return -code ok}
 
 # +---------+
 # | Startup |
