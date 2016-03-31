@@ -16,7 +16,7 @@ namespace eval ::DBTools:: {
 
     ## Store interface variables
     variable sys
-    array unset sys
+    array unset sys *
 
     ## Show the title and citation info?
     variable showtitle 0
@@ -27,6 +27,33 @@ namespace eval ::DBTools:: {
     ## Return error codes
     set sys(OK) 0
     set sys(ERROR) -1
+
+    ## Properties to copy from templates
+    variable cpylist {name type mass charge radius element \
+      resname resid chain segname}
+
+    ## Array containing the binary tree connectivities
+    variable tree
+    array unset tree *
+
+    ## Array containing active selections
+    variable selections
+    foreach {key value} [array get selections] {
+        catch {$value delete}
+        unset selections($key)
+    }
+    array unset selections *
+}
+
+## A wrapper around cgCon
+proc DBTools::dbtCon {flag str} {
+    switch -- $flag {
+        "-error" -
+        "-err"  { vmdcon -err  "DBTOOLS> $str" }
+        "-warn" { vmdcon -warn "DBTOOLS> $str" }
+        "-info" { vmdcon -info "DBTOOLS> $str" }
+        default { vmdcon "DBTOOLS> $str"}
+    }
 }
 
 # +----------------+
@@ -47,4 +74,7 @@ package provide dbt $::DBTools::version
 if {$::DBTools::showtitle} {::DBTools::title}
 
 ## Load other cgtools files
+set ::env(DBTOOLSDIR) [pwd] ;# for testing
+source [file join $env(DBTOOLSDIR) dbtools_build.tcl]
 source [file join $env(DBTOOLSDIR) dbtools_geometry.tcl]
+source [file join $env(DBTOOLSDIR) trees.dat]
