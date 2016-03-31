@@ -1,5 +1,6 @@
 if {![namespace exists ::DBTools]} {
   namespace eval ::DBTools:: {}
+  set testflag 1
 }
 
 ## Define core, repeat and terminal resnames 
@@ -40,21 +41,28 @@ proc ::DBTools::topo_bapad {} {
 
   lappend topo bapad {
 
-        name {core   EDH
-              repeat AMP
-              term   AHH 
+        name {
+          core   EDH
+          repeat AMP
+          term   AHH 
+        }
+
+        fname { 
+          core   EDH.mol2
+          repeat AMP.mol2
+          term   AHH.mol2
         }
 
         link {
           
           core-repeat {
-          {C2 C1 N1 C1 C2 C5} 
-          {C1 C2 N2 C1 C2 C5}
+            {C2 C1 N1 C1 C2 C5} 
+            {C1 C2 N2 C1 C2 C5}
           }
           
           repeat-repeat {
-          {C2 C3 N1 C1 C2 C5}
-          {C2 C4 N2 C1 C2 C5}
+            {C2 C3 N1 C1 C2 C5}
+            {C2 C4 N2 C1 C2 C5}
           }  
         
           repeat-term {}
@@ -92,6 +100,9 @@ proc ::DBTools::topo_bapad {} {
 
         }
   }
+
+  return 
+
 }
 
 ::DBTools::topo_bapad

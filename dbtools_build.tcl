@@ -8,37 +8,39 @@ proc ::DBTools::buildDendrimer {dname gen\
 
   variable topo 
   variable tree
+  variable cpylist
+
+  ## Selection array
+  array unset selections *
 
   ## Load Fragments if necessary 
-  set names [dict get $topo $dname name] 
+  set fnames [dict get $topo $dname fname] 
   if {$coreid == ""} {
-   set prefix [dict get $names core]
-   set coreid [safeNewMol $prefix.pdb]
+   set prefix [dict get $fnames core]
+   set coreid [safeMolNew $prefix]
   }
 
   if {$repeatid == ""} {
-   set prefix [dict get $names repeat]
-   set repeatid [safeNewMol $prefix.pdb]
+   set prefix [dict get $fnames repeat]
+   set repeatid [safeMolNew $prefix]
   }
 
   if {$termid == ""} {
-   set prefix [dict get $names term]
-   set termid [safeNewMol $prefix.pdb]
+   set prefix [dict get $fnames term]
+   set termid [safeMolNew $prefix]
   }
 
   ## Create a dummy molecule to store temprary files 
-  set dumid [safeNewMol [molinfo $repeatid get filename]]
+  set dumid [safeMolNew [molinfo $repeatid get filename]]
 
   ## Create some selections for each of the fragments
-  set sel_core [atomselect $coreid "all"]
+  set sel_core   [atomselect $coreid "all"]
   set sel_repeat [atomselect $repeatid "all"]
-  set sel_dum [atomselect $dumid "all"] 
-  if {$termid != ""} {
-    set sel_term [atomselect $termid "all"]
-  }
+  set sel_dum    [atomselect $dumid "all"] 
+  set sel_term   [atomselect $termid "all"]
 
   ## Coordinates, topologies 
-  set coords {}; set top {}; set bondlist {} 
+  set props {}; set bondlist {} 
 
   ## Root id of the binary tree 
   set rootid [lindex $tree($gen) 0 0] 
@@ -47,8 +49,8 @@ proc ::DBTools::buildDendrimer {dname gen\
   $sel_core moveby [vecinvert [measure center $sel_core]]
   set coord_arr($rootid) [$sel_core get {x y z}]
   
-  ## update the data
-  lappend top [$sel_core get $cpylist]
+  ## update the atomic data and bond list 
+  lappend props [$sel_core get $cpylist]
   lappend bondlist [topo -sel $sel_core getbondlist] 
 
   ## Attach the core to the repeats 
@@ -56,7 +58,7 @@ proc ::DBTools::buildDendrimer {dname gen\
   set geometry [dict get $topo $dname geometry core-repeat]
   
   ## Get the nodes with depth = 1 
-  set paths  
+  set paths [getNodes $gen 1]
   foreach p $paths l $links g $geometry {
    set id0 [lindex $p 0]; ## Parent 
    set id1 [lindex $p 1]; ## Left leaf
@@ -75,28 +77,29 @@ proc ::DBTools::buildDendrimer {dname gen\
    lappend bondlist [topo -sel $sel_repeat getbondlist] 
   }
   
-  ## Generate the coordinate list
-  foreach {key value} [array get coord_arr *] {
-    lappend coords $value
-  }
-
-  ## Collapse the coordinate and property arrays
-  set coords [join $coords]
-  set top [join $top]
-
   ## Merge the fragments 
-  set newmol [mergeFragments $coords $top 
+  set newmol [mergeFragments $props $bondlist] 
 
   ## Fix bonds
 
-  return $newmol
+  ## Cleanup
+  $sel_core   delete
+  $sel_repeat delete
+  $sel_term   delete
+  $sel_dum    delete 
 
+  foreach {key value} [array get selections *] {
+    catch {$value delete}
+  }
+  array unset selections *
+
+  return $newmol
 }
 
-proc ::DBTools::mergeFragments {coords top} {
+proc ::DBTools::mergeFragments {props bondlist} {
 
-    set coords [join $coords]
-    set top [join $top]
+    ## Collapse the property array
+    set props [join $props]
 
     ## Create a new mol and dump the coordinates
     ## and atom properties into it
@@ -106,8 +109,7 @@ proc ::DBTools::mergeFragments {coords top} {
     $sel_new set {x y z} $coords
     $sel_new set $cpylist $top
 
-    ## Update the bond list and create bonds between
-    ## fragments 
+    ## Update the bond list
     set newbl {}
     set offset [llength [lsort\
         -unique -integer -increasing [join [lindex $bondlist 0]]]]
@@ -138,7 +140,7 @@ proc ::DBTools::mergeFragments {coords top} {
 
 proc ::DBTools::safeMolNew {fname} {
 
-  if { [catch { mol new $fname } retval } {
+  if { [catch { mol new $fname } retval] } {
     dbtCon -error $retval; return -code error
   }
 

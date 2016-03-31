@@ -30,11 +30,15 @@ namespace eval ::DBTools:: {
 
     ## Properties to copy from templates
     variable cpylist {name type mass charge radius element \
-      resname resid chain segname}
+      resname resid chain segname x y z}
 
     ## Array containing the binary tree connectivities
     variable tree
     array unset tree *
+
+    ## Dendrimer Topologies 
+    variable topo
+    set topo {}
 }
 
 ## A wrapper around cgCon
@@ -71,4 +75,4 @@ if {$::DBTools::showtitle} {::DBTools::title}
 #set ::env(DBTOOLSDIR) [pwd] ;# for testing
 source [file join $env(DBTOOLSDIR) dbtools_build.tcl]
 source [file join $env(DBTOOLSDIR) dbtools_geometry.tcl]
-source [file join $env(DBTOOLSDIR) tree.dat]
+source [file join $env(DBTOOLSDIR) dbtools_tree.tcl]
