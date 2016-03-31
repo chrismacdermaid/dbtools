@@ -1,19 +1,45 @@
-proc ::DBTools::setGeometry {selections midsatoms geometry} {
+proc ::DBTools::setGeometry\
+  {selections molids atoms geometry} {
 
       ## This is a bit clunky, but it is the minimal
       ## number of transformations required to get the
       ## geometry about the linkage correct
 
       if {[llength $geometry] != 6} {
-        puts "Geometry list format is: chi1 r1 theta1 chi2 theta2 chi3"
+        dbtCon -error "Geometry list format is: chi1 r1 theta1 chi2 theta2 chi3"
         return -code error
       }
 
+      if {[llength $atoms] != 6} {
+        dbtCon -error "six atoms are required for link definition"
+        return -code error
+      }
+
+      set nmolids [llength $molids] 
+
+      if {$nmolids == 2} {
+ 
+        lassign $atoms a1 a2 a3 a4 a5 a6
+        lassign $molids m1 m2
+        set midsatoms [list $a1 $m1 $a2 $m1 $a3 $m1\
+          $a4 $m2 $a5 $m2 $a6 $m2]
+      
+      } elseif {$nmolids == 6} {
+    
+        set midsatoms {}
+        foreach a $atoms m $molids { lappend midsatoms $a $m} 
+      
+      } else {
+          dbtCon -error "two or six molids are required for geometry specification"
+          return -code error
+      }
+
+      ## Get selections and geometries 
       set sels [getSel selections $midsatoms] 
       lassign $sels sel1 sel2 sel3 sel4 sel5 sel6 
-      
       lassign $geometry chi1 r theta1 chi2 theta2 chi3
 
+      ## Set the geometries 
       if {$r != ""}      {setBond  [list $sel3 $sel4] $r}
       if {$chi1 != ""}   {setDihed [list $sel1 $sel2 $sel3 $sel4] $chi1}
       if {$theta1 != ""} {setAngle [list $sel2 $sel3 $sel4] $theta1}
@@ -30,16 +56,20 @@ proc ::DBTools::getSel {selections midsatoms} {
   ## between the specified fragments
 
   set retval {}
-  foreach x $midsatoms {
-    lassign $x atom molid
-    lappend retval [__getSel selections $molid $atom] 
+  foreach {atom molid} $midsatoms {
+    if {$atom == "" || $molid == ""} {
+      lappend retval ""
+    } else { 
+      lappend retval [__getSel selections $molid $atom]
+    }
   }
 
   return $retval
 }
 
 proc ::DBTools::__getSel {selections mol atom} {
-  upvar #1  $selections s
+
+  upvar #1 $selections s
 
   ## Check if a selection exists and 
   ## return handle if it does; otherwise
