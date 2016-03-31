@@ -74,7 +74,7 @@ package provide dbt $::DBTools::version
 if {$::DBTools::showtitle} {::DBTools::title}
 
 ## Load other cgtools files
-set ::env(DBTOOLSDIR) [pwd] ;# for testing
+#set ::env(DBTOOLSDIR) [pwd] ;# for testing
 source [file join $env(DBTOOLSDIR) dbtools_build.tcl]
 source [file join $env(DBTOOLSDIR) dbtools_geometry.tcl]
-source [file join $env(DBTOOLSDIR) trees.dat]
+source [file join $env(DBTOOLSDIR) tree.dat]
