@@ -68,20 +68,23 @@ proc ::DBTools::buildDendrimer {dname gen\
 
   ## Get the nodes with depth = 1 
   ## This is the root/core molecule
-  set paths  [getNodes $gen 1]
-  set molids [list $coreid $repeatid]
-  foreach p $paths l $links g $geometry {
-   set id0 [lindex $p 0]; ## Parent 
-   set id1 [lindex $p 1]; ## Node 
- 
-   ## Set the Geometry about the first linkage 
-   setGeometry selections $molids $l $g
 
-   ## Update coordiates, topologies and properties
-   set coord_arr($id1) [$sel_repeat get {x y z}]
-   $sel_repeat set resid "$id1"
-   lappend props [$sel_repeat get $cpylist] 
-   lappend bondlist [topo -sel $sel_repeat getbondlist] 
+  if {$gen > 1} {
+    set paths  [getNodes $gen 1]
+    set molids [list $coreid $repeatid]
+      foreach p $paths l $links g $geometry {
+      set id0 [lindex $p 0]; ## Parent 
+      set id1 [lindex $p 1]; ## Node 
+  
+      ## Set the Geometry about the first linkage 
+      setGeometry selections $molids $l $g
+
+      ## Update coordiates, topologies and properties
+      set coord_arr($id1) [$sel_repeat get {x y z}]
+      $sel_repeat set resid "$id1"
+      lappend props [$sel_repeat get $cpylist] 
+      lappend bondlist [topo -sel $sel_repeat getbondlist] 
+    }
   }
 
   ## Do the repeats
@@ -127,22 +130,32 @@ proc ::DBTools::buildDendrimer {dname gen\
       }
     }
   }       
- 
+
+  ## Special case when we have gen 1 -- core attached to termini
+  if {$gen == 1} {
+    lassign [dict get $restop link core-term] l1 l2 
+    lassign [dict get $restop geometry core-term] g1 g2 
+    set molids [list $coreid $termid]
+    set sel_dum2 $sel_core
+  } else {
+    lassign [dict get $restop link repeat-term] l1 l2 
+    lassign [dict get $restop geometry repeat-term] g1 g2 
+    set molids [list $dumid $termid]
+    set sel_dum2 $sel_dum
+  }
+
   ## Get the nodes with depth = Dendrimer Generation 
   ## These are the leafs / terminal units 
-  lassign [dict get $restop link repeat-term] l1 l2 
-  lassign [dict get $restop geometry repeat-term] g1 g2 
-  set molids [list $dumid $termid]
   set paths  [getNodes $gen $gen]
     
   foreach {p1 p2} $paths {
-    set id0 [lindex $p1 $i-1]; ## Parent Node 
-    set id1 [lindex $p1 $i];   ## Left  Node 
-    set id2 [lindex $p2 $i];   ## Right Node 
+    set id0 [lindex $p1 $gen-1]; ## Parent Node 
+    set id1 [lindex $p1 $gen];   ## Left  Node 
+    set id2 [lindex $p2 $gen];   ## Right Node 
 
     ## Load the coordinates of the antecendent
     ## into the dummy mol
-    $sel_dum set {x y z} $coord_arr($id0)
+    $sel_dum2 set {x y z} $coord_arr($id0)
 
     if {![info exists coord_arr($id1)]} {
 
@@ -279,50 +292,56 @@ proc ::DBTools::fixBonds {dname gen molid} {
       set id0 [lindex $p1 $i-1]; ## Parent Node 
       set id1 [lindex $p1 $i];   ## Left  Node 
       set id2 [lindex $p2 $i];   ## Right Node 
-      lassign $b1 a0 a1 
-      lassign $b2 a0 a2 
+      lassign $b1 a10 a11 
+      lassign $b2 a20 a21 
 
-      set nameres0 [lsearch\
-       -exact $nameres [list $a0 $id0]]
-      set nameres1 [lsearch\
-        -exact $nameres [list $a1 $id1]]
-      set nameres2 [lsearch\
-        -exact $nameres [list $a2 $id2]]
-
+      set nameres10 [lsearch\
+       -exact $nameres [list $a10 $id0]]
+      set nameres11 [lsearch\
+        -exact $nameres [list $a11 $id1]]
       lappend newbl [list\
-        [lindex $index $nameres0] [lindex $index $nameres1]] 
-
+        [lindex $index $nameres10] [lindex $index $nameres11]] 
+        
+      set nameres20 [lsearch\
+       -exact $nameres [list $a20 $id0]]
+      set nameres21 [lsearch\
+        -exact $nameres [list $a21 $id2]]
       lappend newbl [list\
-        [lindex $index $nameres0] [lindex $index $nameres2]] 
+        [lindex $index $nameres20] [lindex $index $nameres21]] 
     }
   }
- 
+
+  ## Special case for core-term linkage  
+  if {$gen == 1} {
+   lassign [dict get $restop bonds core-term] b1 b2
+  } else {
+   lassign [dict get $restop bonds repeat-term] b1 b2
+  }
+
   ## Termini
-  lassign [dict get $restop bonds repeat-term] b1 b2
   set paths [getNodes $gen $gen]
 
   foreach {p1 p2} $paths {
-    set id0 [lindex $p1 $i-1]; ## Parent Node 
-    set id1 [lindex $p1 $i];   ## Left  Node 
-    set id2 [lindex $p2 $i];   ## Right Node 
-    lassign $b1 a0 a1 
-    lassign $b2 a0 a2 
+    set id0 [lindex $p1 $gen-1]; ## Parent Node 
+    set id1 [lindex $p1 $gen];   ## Left  Node 
+    set id2 [lindex $p2 $gen];   ## Right Node 
+      lassign $b1 a10 a11 
+      lassign $b2 a20 a21 
 
-    set nameres0 [lsearch\
-     -exact $nameres [list $a0 $id0]]
-    set nameres1 [lsearch\
-      -exact $nameres [list $a1 $id1]]
-    set nameres2 [lsearch\
-      -exact $nameres [list $a2 $id2]]
-
-    lappend newbl [list\
-      [lindex $index $nameres0] [lindex $index $nameres1]] 
-
-    lappend newbl [list\
-      [lindex $index $nameres0]  [lindex $index $nameres2]] 
+      set nameres10 [lsearch\
+       -exact $nameres [list $a10 $id0]]
+      set nameres11 [lsearch\
+        -exact $nameres [list $a11 $id1]]
+      lappend newbl [list\
+        [lindex $index $nameres10] [lindex $index $nameres11]] 
+        
+      set nameres20 [lsearch\
+       -exact $nameres [list $a20 $id0]]
+      set nameres21 [lsearch\
+        -exact $nameres [list $a21 $id2]]
+      lappend newbl [list\
+        [lindex $index $nameres20] [lindex $index $nameres21]] 
   }
-
-  puts $newbl
   
   topo -molid $molid setbondlist\
     [concat [topo -molid $molid getbondlist] $newbl]
