@@ -16,11 +16,13 @@ proc ::DBTools::getNodes {gen depth {key "none"}} {
   
   if {$key != "none"} {
     set retval [lsearch -ascii -inline -all -index\
-       $depth $tree($gen) $key 
+       $depth $tree($gen) $key]
   } else {
     set retval [lsort \
-      -unique -integer -index $depth $tree($gen)]
+      -unique -integer -increasing -index $gen $tree($gen)]
+   # set retval [lsort \
+   #   -increasing -integer -index $gen-1 $retval]
   }
-
-  return $retval
+  
+    return $retval
 }
