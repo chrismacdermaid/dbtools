@@ -259,30 +259,32 @@ proc ::DBTools::fixBonds {dname gen molid} {
 
   ## Set the bonds between fragments
   ## First do the core-repeat 
+  set sel [atomselect $molid "all"]
 
   ## Get name-index list
-  set sel [atomselect $molid "all"]
   set nameres [$sel get {name resid}]
   set index [$sel get index]
-
-  ## Get the second level nodes of the tree 
-  set bonds [dict get $restop bonds core-repeat]
-  set paths [getNodes $gen 1] 
- 
   set newbl {}
-  foreach p $paths b $bonds {
-    lassign $p id0 id1
-    lassign $b a0  a1
 
-    set nameres0 [lsearch\
-      -exact $nameres [list $a0 $id0]]
-    set nameres1 [lsearch\
-      -exact $nameres [list $a1 $id1]]
-    
-    lappend newbl [list\
-      [lindex $index $nameres0 ] [lindex $index $nameres1]] 
+  if {$gen > 1} {
+    ## Get the second level nodes of the tree 
+    set bonds [dict get $restop bonds core-repeat]
+    set paths [getNodes $gen 1] 
+ 
+    foreach p $paths b $bonds {
+      lassign $p id0 id1
+      lassign $b a0  a1
+
+      set nameres0 [lsearch\
+        -exact $nameres [list $a0 $id0]]
+      set nameres1 [lsearch\
+        -exact $nameres [list $a1 $id1]]
+      
+      lappend newbl [list\
+        [lindex $index $nameres0 ] [lindex $index $nameres1]] 
+    }
   }
-
+  
   ## Repeat
   lassign [dict get $restop bonds repeat-repeat] b1 b2
   for {set i 2} {$i < $gen} {incr i} {
