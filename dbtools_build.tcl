@@ -13,9 +13,12 @@ proc ::DBTools::buildDendrimer {dname gen\
   ## Selection array
   catch {array unset selections}
   array set selections {} 
+ 
+  ## Get the topologies for the dendrimer
+  set restop [dict get $topo $dname] 
 
   ## Load Fragments if necessary 
-  set fnames [dict get $topo $dname fname] 
+  set fnames [dict get $restop fname] 
   if {$coreid == ""} {
    set prefix [dict get $fnames core]
    set coreid [safeMolNew $prefix]
@@ -56,8 +59,8 @@ proc ::DBTools::buildDendrimer {dname gen\
   lappend bondlist [topo -sel $sel_core getbondlist] 
 
   ## Attach the core to the repeats 
-  set links [dict get $topo $dname link core-repeat]
-  set geometry [dict get $topo $dname geometry core-repeat]
+  set links [dict get $restop link core-repeat]
+  set geometry [dict get $restop geometry core-repeat]
  
   if {[llength $links] >2} {
     dbtCon -error "No more than 2 core-repeat links are supported for now"
@@ -83,8 +86,8 @@ proc ::DBTools::buildDendrimer {dname gen\
 
   ## Do the repeats
   ## Attach the core to the repeats 
-  lassign [dict get $topo $dname link repeat-repeat] l1 l2 
-  lassign [dict get $topo $dname geometry repeat-repeat] g1 g2 
+  lassign [dict get $restop link repeat-repeat] l1 l2 
+  lassign [dict get $restop geometry repeat-repeat] g1 g2 
   set molids [list $dumid $repeatid]
 
   for {set i 2} {$i < $gen} {incr i} {
@@ -127,8 +130,8 @@ proc ::DBTools::buildDendrimer {dname gen\
  
   ## Get the nodes with depth = Dendrimer Generation 
   ## These are the leafs / terminal units 
-  lassign [dict get $topo $dname link repeat-term] l1 l2 
-  lassign [dict get $topo $dname geometry repeat-term] g1 g2 
+  lassign [dict get $restop link repeat-term] l1 l2 
+  lassign [dict get $restop geometry repeat-term] g1 g2 
   set molids [list $dumid $termid]
   set paths  [getNodes $gen $gen]
     
@@ -170,6 +173,7 @@ proc ::DBTools::buildDendrimer {dname gen\
   set newmol [mergeFragments $props $bondlist] 
 
   ## Fix bonds
+  fixBonds $dname $gen $newmol
 
   ## Cleanup
   $sel_core   delete
@@ -226,11 +230,108 @@ proc ::DBTools::mergeFragments {props bondlist} {
 
     ## Apply the bond list
     topo -molid $newmol setbondlist $newbl
+    mol reanalyze $newmol 
 
     ## Cleanup
     $sel_new delete
 
     return $newmol
+}
+
+proc ::DBTools::fixBonds {dname gen molid} {
+
+  variable topo
+
+  set restop [dict get $topo $dname] 
+
+  ## Set the bonds between fragments
+  ## First do the core-repeat 
+
+  ## Get name-index list
+  set sel [atomselect $molid "all"]
+  set nameres [$sel get {name resid}]
+  set index [$sel get index]
+
+  ## Get the second level nodes of the tree 
+  set bonds [dict get $restop bonds core-repeat]
+  set paths [getNodes $gen 1] 
+ 
+  set newbl {}
+  foreach p $paths b $bonds {
+    lassign $p id0 id1
+    lassign $b a0  a1
+
+    set nameres0 [lsearch\
+      -exact $nameres [list $a0 $id0]]
+    set nameres1 [lsearch\
+      -exact $nameres [list $a1 $id1]]
+    
+    lappend newbl [list\
+      [lindex $index $nameres0 ] [lindex $index $nameres1]] 
+  }
+
+  ## Repeat
+  lassign [dict get $restop bonds repeat-repeat] b1 b2
+  for {set i 2} {$i < $gen} {incr i} {
+    set paths [getNodes $gen $i]
+
+    foreach {p1 p2} $paths {
+      set id0 [lindex $p1 $i-1]; ## Parent Node 
+      set id1 [lindex $p1 $i];   ## Left  Node 
+      set id2 [lindex $p2 $i];   ## Right Node 
+      lassign $b1 a0 a1 
+      lassign $b2 a0 a2 
+
+      set nameres0 [lsearch\
+       -exact $nameres [list $a0 $id0]]
+      set nameres1 [lsearch\
+        -exact $nameres [list $a1 $id1]]
+      set nameres2 [lsearch\
+        -exact $nameres [list $a2 $id2]]
+
+      lappend newbl [list\
+        [lindex $index $nameres0] [lindex $index $nameres1]] 
+
+      lappend newbl [list\
+        [lindex $index $nameres0] [lindex $index $nameres2]] 
+    }
+  }
+ 
+  ## Termini
+  lassign [dict get $restop bonds repeat-term] b1 b2
+  set paths [getNodes $gen $gen]
+
+  foreach {p1 p2} $paths {
+    set id0 [lindex $p1 $i-1]; ## Parent Node 
+    set id1 [lindex $p1 $i];   ## Left  Node 
+    set id2 [lindex $p2 $i];   ## Right Node 
+    lassign $b1 a0 a1 
+    lassign $b2 a0 a2 
+
+    set nameres0 [lsearch\
+     -exact $nameres [list $a0 $id0]]
+    set nameres1 [lsearch\
+      -exact $nameres [list $a1 $id1]]
+    set nameres2 [lsearch\
+      -exact $nameres [list $a2 $id2]]
+
+    lappend newbl [list\
+      [lindex $index $nameres0] [lindex $index $nameres1]] 
+
+    lappend newbl [list\
+      [lindex $index $nameres0]  [lindex $index $nameres2]] 
+  }
+
+  puts $newbl
+  
+  topo -molid $molid setbondlist\
+    [concat [topo -molid $molid getbondlist] $newbl]
+
+  mol reanalyze $molid  
+
+  $sel delete
+
+  return -code ok 
 }
 
 proc ::DBTools::safeMolNew {fname} {
