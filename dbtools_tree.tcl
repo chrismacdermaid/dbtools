@@ -21,7 +21,7 @@ proc ::DBTools::getNodes {gen depth {key "none"}} {
     set retval [lsort \
       -unique -integer -index $depth $tree($gen)]
     set retval [lsort \
-      -increasing -integer -index $gen-1 $retval]
+      -increasing -integer -index $depth-1 $retval]
   }
   
     return $retval
