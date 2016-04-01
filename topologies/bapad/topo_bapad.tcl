@@ -3,43 +3,24 @@ if {![namespace exists ::DBTools]} {
   set testflag 1
 }
 
-## Define core, repeat and terminal resnames 
-## and their linkages
-
-#proc ::DBTools::topo_bapad {} {
-#
-#  variable topo
-#
-#  ## Fragment Names 
-#  set topo([list core bapad])   EDH 
-#  set topo([list repeat bapad]) AMP 
-#  set topo([list term bapad])   AHH 
-#
-#  ## Names of atoms invloved in creating linkages
-#  ## between fragments 
-#
-#  set topo([list core-repeat bapad]) {
-#   {C2 C1 N1 C1 C2 C5} 
-#   {C1 C2 N2 C1 C2 C5}
-#  }
-#
-#  set topo([list repeat-repeat bapad]) {
-#   {C2 C3 N1 C1 C2 C5}
-#   {C2 C4 N2 C1 C2 C5}
-#  }
-#
-#  set topo([list repeat-term
-#
-#}
-
+## {95.0 1.35 125.7 -170 115.3 -130.0}
+## {95.5 1.35 125.7 -170 115.3 -130.0}
 
 proc ::DBTools::topo_bapad {} {
 
   variable topo
 
+  set resn bapad
+
+  catch {
+    if {[dict exists $::DBTools::topo $resn]} {
+      dict unset $::DBTools::topo $resn
+    }
+  } 
+
   ## Whitespace is ignored
 
-  lappend topo bapad {
+  lappend topo $resn {
 
         name {
           core   EDH
@@ -48,40 +29,53 @@ proc ::DBTools::topo_bapad {} {
         }
 
         fname { 
-          core   EDH.mol2
-          repeat AMP.mol2
-          term   AHH.mol2
+          core   edh.mol2
+          repeat repeat.pdb 
+          term   ahh.mol2
         }
 
         link {
           
           core-repeat {
-            {C2 C1 N1 C1 C2 C5} 
-            {C1 C2 N2 C1 C2 C5}
+            {C2 C1 N1 C1 C2 O1} 
+            {C1 C2 N2 C1 C2 O1}
           }
           
           repeat-repeat {
-            {C2 C3 N1 C1 C2 C5}
-            {C2 C4 N2 C1 C2 C5}
+            {C2 C3 N1 C1 O1 C2}
+            {C2 C4 N2 C1 O1 C2}
           }  
         
-          repeat-term {}
-      
+          repeat-term {
+            {C2 C3 N1 C1 O1 C2}
+            {C2 C4 N2 C1 O1 C2}
+          }
+
+          core-term {
+            {C2 C1 N1 C1 O1 C2} 
+            {C1 C2 N2 C1 O1 C2}
+          }
         }
 
         geometry {
           core-repeat {
-            {175.0 1.35 125.7 -170 115.3 -76.0}
-            {175.0 1.35 125.7 -170 115.3 -76.0}
+            {175.0 1.35 125.7 -170 115.3 178}
+            {175.0 1.35 125.7 -170 115.3 178}
           }
 
           repeat-repeat {
-            {175.0 1.35 125.7 -170 115.3 -76.0}
-            {175.0 1.35 125.7 -170 115.3 -76.0}
+            {175.0 1.35 125.7 0.0 120.0 180.0}
+            {175.0 1.35 125.7 0.0 120.0 180.0}
           }
 
           repeat-term {
+            {175.0 1.35 125.7 0.0 120.0 178.0}
+            {175.0 1.35 125.7 0.0 120.0 178.0}
+          }
 
+          core-term {
+            {175.0 1.35 125.7 0.0 120.0 178.0}
+            {175.0 1.35 125.7 0.0 120.0 178.0}
           }
         }
 
@@ -93,10 +87,18 @@ proc ::DBTools::topo_bapad {} {
 
           repeat-repeat {
             {N1 C1}
-            {N1 C1}
+            {N2 C1}
           }
 
-          repeat-term {}
+          repeat-term {
+            {N1 C1}
+            {N2 C1}
+          }
+
+          core-term {
+            {N1 C1}
+            {N2 C1}
+          }
 
         }
   }
